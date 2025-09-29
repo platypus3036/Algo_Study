@@ -1,57 +1,50 @@
 # .github/workflows/generate-daily-template.yml
 
-# 워크플로우 이름
 name: Generate Daily Problem Template
 
-# 워크플로우 실행 조건
 on:
-  # Actions 탭에서 수동으로 실행 가능하게 함
   workflow_dispatch:
     inputs:
-      # '날짜' 입력 필드 정의
       date:
         description: '폴더 이름으로 사용할 날짜 (yymmdd 형식)'
         required: true
-        # 기본값으로 워크플로우 실행 시점의 오늘 날짜를 자동 제안
         default: $(date +'%y%m%d')
-      # '문제 목록' 입력 필드 정의
       problems:
         description: '생성할 문제 폴더 이름 (쉼표로 구분)'
         required: true
         default: '문제이름1,문제이름2'
 
-# 실행될 작업 정의
 jobs:
   generate-files:
     runs-on: ubuntu-latest
     steps:
-      # 1. 소스 코드 체크아웃
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 2. 입력값을 기반으로 폴더 및 파일 생성
       - name: Create Directories and Files
         run: |
-          # 입력받은 값을 변수로 저장
           TARGET_DATE=${{ github.event.inputs.date }}
           PROBLEM_LIST=${{ github.event.inputs.problems }}
 
-          # 1. 날짜 폴더 생성
-          mkdir -p $TARGET_DATE
-          
-          # 2. 날짜 폴더 내에 README.md 생성
+          # 1. 날짜 폴더 생성 및 그 안에 README.md 생성
+          mkdir -p "$TARGET_DATE"
           touch "${TARGET_DATE}/README.md"
           
-          # 3. 쉼표로 구분된 문제 목록을 순회하며 각 문제 폴더 생성
-          #    - IFS=',' 는 쉼표를 기준으로 문자열을 나누기 위한 설정
-          IFS=','
-          for problem in $PROBLEM_LIST; do
+          # 2. 쉼표로 구분된 문제 목록을 배열로 변환
+          IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
+          
+          # 3. 배열을 순회하며 각 문제 폴더와 그 안의 README.md 생성
+          for problem in "${PROBLEMS_ARRAY[@]}"; do
             # 앞뒤 공백 제거
-            problem=$(echo $problem | xargs)
-            mkdir -p "${TARGET_DATE}/${problem}"
+            trimmed_problem=$(echo "$problem" | xargs)
+            
+            # 문제 폴더 생성
+            mkdir -p "${TARGET_DATE}/${trimmed_problem}"
+            
+            # 문제 폴더 내에 README.md 생성 (Git이 빈 폴더를 추적하도록 함)
+            touch "${TARGET_DATE}/${trimmed_problem}/README.md"
           done
 
-      # 3. 변경된 내용 커밋 및 푸시
       - name: Commit and Push changes
         run: |
           git config --global user.name 'github-actions[bot]'
