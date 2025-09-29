@@ -9,10 +9,10 @@ on:
         description: '폴더 이름으로 사용할 날짜 (yymmdd 형식)'
         required: true
         default: $(date +'%y%m%d')
-      problems:
-        description: '오늘 스터디에서 다룰 문제 목록 (쉼표로 구분)'
+      problems_info:
+        description: "문제 정보를 '이름|링크|난이도' 형식으로, 문제 간에는 세미콜론(;)으로 구분하여 입력"
         required: true
-        default: '문제이름1,문제이름2'
+        default: 'A+B|https://...|Bronze; 문제이름2|https://...|Gold'
 
 jobs:
   generate-files:
@@ -24,12 +24,10 @@ jobs:
       - name: Create Common Study Template
         run: |
           TARGET_DATE=${{ github.event.inputs.date }}
-          PROBLEM_LIST=${{ github.event.inputs.problems }}
+          PROBLEMS_INPUT=${{ github.event.inputs.problems_info }}
 
-          # 1. 날짜 폴더 생성
+          # 1. 날짜 폴더 생성 및 기본 README 파일 생성
           mkdir -p "$TARGET_DATE"
-          
-          # 2. 날짜 폴더 내에 공용 README 생성 및 기본 템플릿 작성 (Heredoc 사용)
           cat <<EOF > "${TARGET_DATE}/README.md"
 # 🗓️ ${TARGET_DATE} 스터디 회고
 
@@ -43,25 +41,32 @@ jobs:
 
 EOF
 
-          # 3. 쉼표로 구분된 문제 목록을 배열로 변환
-          IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
+          # 2. 세미콜론(;)으로 각 문제 정보를 분리하여 배열로 만듦
+          IFS=';' read -ra PROBLEMS_ARRAY <<< "$PROBLEMS_INPUT"
           
-          # 4. 각 문제에 대한 토론 섹션을 README에 추가
-          for problem in "${PROBLEMS_ARRAY[@]}"; do
-            trimmed_problem=$(echo "$problem" | xargs)
+          # 3. 각 문제 정보를 순회하며 처리
+          for problem_info in "${PROBLEMS_ARRAY[@]}"; do
+            # 4. 파이프(|)로 이름, 링크, 난이도를 다시 분리
+            IFS='|' read -r name link difficulty <<< "$problem_info"
             
-            cat <<EOM >> "${TARGET_DATE}/README.md"
-### 📝 ${trimmed_problem}
+            # 앞뒤 공백 제거
+            name=$(echo "$name" | xargs)
+            link=$(echo "$link" | xargs)
+            difficulty=$(echo "$difficulty" | xargs)
 
-- **문제 링크**: [여기에 링크 입력]
-- **난이도**: 
+            # 5. 날짜별 README 파일에 템플릿 추가
+            cat <<EOM >> "${TARGET_DATE}/README.md"
+
+### 📝 [${name}](${link})
+
+- **난이도**: ${difficulty}
 - **주요 접근법 요약**: (예: A는 DFS, B는 DP로 접근)
 - **토론 내용 및 피드백**: (예: 시간 복잡도 개선 방안, 코드 가독성 논의)
 
 EOM
           done
           
-          # 5. KPT 회고 및 다음 주 계획 섹션을 README에 추가
+          # 6. KPT 회고 및 다음 주 계획 섹션을 README에 추가
           cat <<EOF >> "${TARGET_DATE}/README.md"
 
 ---
