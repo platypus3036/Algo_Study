@@ -6,7 +6,8 @@ on:
       date:
         description: '폴더 이름으로 사용할 날짜 (yymmdd 형식)'
         required: true
-        default: $(date +'%y%m%d')
+        # $() 특수 문자가 문제를 일으키지 않도록 큰따옴표로 감쌌습니다.
+        default: "$(date +'%y%m%d')"
       problems:
         description: '오늘 스터디에서 다룰 문제 목록 (쉼표로 구분)'
         required: true
@@ -88,7 +89,6 @@ EOF
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          # 커밋 메시지에서 TARGET_DATE 변수를 직접 사용하도록 수정
           git add .
           git commit -m "docs: ${{ github.event.inputs.date }} 스터디 회고 템플릿 생성" || exit 0
           git push
