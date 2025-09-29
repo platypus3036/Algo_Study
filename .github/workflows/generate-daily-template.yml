@@ -1,6 +1,6 @@
 # .github/workflows/generate-daily-template.yml
 
-name: Generate Daily Problem Template
+name: Generate Daily Study Template
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
         required: true
         default: $(date +'%y%m%d')
       problems:
-        description: '생성할 문제 폴더 이름 (쉼표로 구분)'
+        description: '오늘 스터디에서 다룰 문제 목록 (쉼표로 구분)'
         required: true
         default: '문제이름1,문제이름2'
 
@@ -21,34 +21,76 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Create Directories and Files
+      - name: Create Common Study Template
         run: |
           TARGET_DATE=${{ github.event.inputs.date }}
           PROBLEM_LIST=${{ github.event.inputs.problems }}
 
-          # 1. 날짜 폴더 생성 및 그 안에 README.md 생성
+          # 1. 날짜 폴더 생성
           mkdir -p "$TARGET_DATE"
-          touch "${TARGET_DATE}/README.md"
           
-          # 2. 쉼표로 구분된 문제 목록을 배열로 변환
+          # 2. 날짜 폴더 내에 공용 README 생성 및 기본 템플릿 작성 (Heredoc 사용)
+          cat <<EOF > "${TARGET_DATE}/README.md"
+# 🗓️ ${TARGET_DATE} 스터디 회고
+
+## 🎯 이번 주 스터디 목표 및 주요 학습 내용
+
+- 
+
+---
+
+## 📚 문제별 토론 및 회고
+
+EOF
+
+          # 3. 쉼표로 구분된 문제 목록을 배열로 변환
           IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
           
-          # 3. 배열을 순회하며 각 문제 폴더와 그 안의 README.md 생성
+          # 4. 각 문제에 대한 토론 섹션을 README에 추가
           for problem in "${PROBLEMS_ARRAY[@]}"; do
-            # 앞뒤 공백 제거
             trimmed_problem=$(echo "$problem" | xargs)
             
-            # 문제 폴더 생성
-            mkdir -p "${TARGET_DATE}/${trimmed_problem}"
-            
-            # 문제 폴더 내에 README.md 생성 (Git이 빈 폴더를 추적하도록 함)
-            touch "${TARGET_DATE}/${trimmed_problem}/README.md"
+            cat <<EOM >> "${TARGET_DATE}/README.md"
+### 📝 ${trimmed_problem}
+
+- **문제 링크**: [여기에 링크 입력]
+- **난이도**: 
+- **주요 접근법 요약**: (예: A는 DFS, B는 DP로 접근)
+- **토론 내용 및 피드백**: (예: 시간 복잡도 개선 방안, 코드 가독성 논의)
+
+EOM
           done
+          
+          # 5. KPT 회고 및 다음 주 계획 섹션을 README에 추가
+          cat <<EOF >> "${TARGET_DATE}/README.md"
+
+---
+
+## 🚀 KPT 회고 (Keep, Problem, Try)
+
+### Keep (유지할 점)
+
+- 
+
+### Problem (개선할 점)
+
+- 
+
+### Try (다음에 시도할 점)
+
+- 
+
+---
+
+## 🗓️ 다음 주 계획
+
+- 
+EOF
 
       - name: Commit and Push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          git commit -m "feat: ${{ github.event.inputs.date }} 문제 템플릿 생성" || exit 0
+          git commit -m "docs: ${TARGET_DATE} 스터디 회고 템플릿 생성" || exit 0
           git push
