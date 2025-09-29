@@ -6,12 +6,11 @@ on:
       date:
         description: '폴더 이름으로 사용할 날짜 (yymmdd 형식)'
         required: true
-        # $() 특수 문자가 문제를 일으키지 않도록 큰따옴표로 감쌌습니다.
         default: "$(date +'%y%m%d')"
       problems:
-        description: '오늘 스터디에서 다룰 문제 목록 (쉼표로 구분)'
+        description: '문제와 링크 목록 (형식: 문제이름1:링크1,문제이름2:링크2)'
         required: true
-        default: '문제이름1,문제이름2'
+        default: '문제A:https://example.com/problem/1,문제B:https://example.com/problem/2'
 
 jobs:
   generate-files:
@@ -20,70 +19,73 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Create Common Study Template
+      - name: Create Common Study Template with Links
         run: |
           TARGET_DATE=${{ github.event.inputs.date }}
           PROBLEM_LIST=${{ github.event.inputs.problems }}
 
-          # 1. 날짜 폴더 생성
           mkdir -p "$TARGET_DATE"
-          
-          # 2. 날짜 폴더 내에 공용 README 생성 및 기본 템플릿 작성
-          cat <<EOF > "${TARGET_DATE}/README.md"
-# 🗓️ ${TARGET_DATE} 스터디 회고
 
-## 🎯 이번 주 스터디 목표 및 주요 학습 내용
+          cat <<-EOF > "${TARGET_DATE}/README.md"
+          # 🗓️ ${TARGET_DATE} 스터디 회고
 
-- 
+          ## 🎯 이번 주 스터디 목표 및 주요 학습 내용
 
----
+          - 
 
-## 📚 문제별 토론 및 회고
-EOF
+          ---
 
-          # 3. 쉼표로 구분된 문제 목록을 배열로 변환
+          ## 📚 문제별 토론 및 회고
+          EOF
+
+          # 쉼표로 구분된 목록을 배열로 변환합니다.
           IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
-          
-          # 4. 각 문제에 대한 토론 섹션을 README에 추가
-          for problem in "${PROBLEMS_ARRAY[@]}"; do
-            trimmed_problem=$(echo "$problem" | xargs)
+
+          for item in "${PROBLEMS_ARRAY[@]}"; do
+            # 앞뒤 공백 제거
+            trimmed_item=$(echo "$item" | xargs)
             
-            cat <<EOM >> "${TARGET_DATE}/README.md"
+            # ':'를 기준으로 문제 이름과 링크를 분리합니다.
+            # 링크에 ':'가 포함될 수 있으므로(예: https://...), 두 번째 필드부터 끝까지를 링크로 처리합니다.
+            PROBLEM_NAME=$(echo "$trimmed_item" | cut -d':' -f1)
+            PROBLEM_LINK=$(echo "$trimmed_item" | cut -d':' -f2-)
+            
+            cat <<-EOM >> "${TARGET_DATE}/README.md"
 
-### 📝 ${trimmed_problem}
+          ### 📝 ${PROBLEM_NAME}
 
-- **문제 링크**: [여기에 링크 입력]
-- **난이도**: 
-- **주요 접근법 요약**: (예: A는 DFS, B는 DP로 접근)
-- **토론 내용 및 피드백**: (예: 시간 복잡도 개선 방안, 코드 가독성 논의)
-EOM
+          - **문제 링크**: [바로가기](${PROBLEM_LINK})
+          - **난이도**: 
+          - **주요 접근법 요약**: (예: A는 DFS, B는 DP로 접근)
+          - **토론 내용 및 피드백**: (예: 시간 복잡도 개선 방안, 코드 가독성 논의)
+          EOM
           done
-          
-          # 5. KPT 회고 및 다음 주 계획 섹션을 README에 추가
-          cat <<EOF >> "${TARGET_DATE}/README.md"
 
----
+          # KPT 및 다음 주 계획 섹션 추가
+          cat <<-EOF >> "${TARGET_DATE}/README.md"
 
-## 🚀 KPT 회고 (Keep, Problem, Try)
+          ---
 
-### Keep (유지할 점)
+          ## 🚀 KPT 회고 (Keep, Problem, Try)
 
-- 
+          ### Keep (유지할 점)
 
-### Problem (개선할 점)
+          - 
 
-- 
+          ### Problem (개선할 점)
 
-### Try (다음에 시도할 점)
+          - 
 
-- 
+          ### Try (다음에 시도할 점)
 
----
+          - 
 
-## 🗓️ 다음 주 계획
+          ---
 
-- 
-EOF
+          ## 🗓️ 다음 주 계획
+
+          - 
+          EOF
 
       - name: Commit and Push changes
         run: |
