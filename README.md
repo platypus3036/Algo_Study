@@ -99,5 +99,3 @@ git reset --hard [커밋-해시]
 # 마지막 커밋 메시지 수정하기
 git commit --amend
 ```
-
-## 푼 문제 목록
