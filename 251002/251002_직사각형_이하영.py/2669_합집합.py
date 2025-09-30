@@ -16,6 +16,6 @@ def calc_area(rec):
 
 
 
-rec = [list(map(int, input().split())) for _ in range(4)] # 4개 사각형
+rec = [list(map(int, input().split())) for _ in range(4)] # 4개의 사각형 정보 - 4줄
 result = calc_area(rec)
 print(result)
