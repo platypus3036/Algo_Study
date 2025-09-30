@@ -6,7 +6,6 @@ on:
       date:
         description: '폴더 이름으로 사용할 날짜 (yymmdd 형식)'
         required: true
-        # default는 정적인 값만 사용 가능하므로 동적 생성 구문 제거
       problems:
         description: '문제와 링크 목록 (형식: 문제이름1:링크1,문제이름2:링크2)'
         required: true
@@ -21,42 +20,30 @@ jobs:
 
       - name: Create study template
         run: |
-          TARGET_DATE=${{ github.event.inputs.date }}
-          PROBLEM_LIST=${{ github.event.inputs.problems }}
+          TARGET_DATE="${{ github.event.inputs.date }}"
+          # --- 바로 이 부분입니다! ---
+          # 입력받은 값을 쌍따옴표로 감싸서 띄어쓰기가 포함된 문자열도 안전하게 처리합니다.
+          PROBLEM_LIST="${{ github.event.inputs.problems }}"
           
           mkdir -p "$TARGET_DATE"
           
-          # 여러번 cat으로 파일을 쓰는 대신, 변수에 내용을 누적한 후 한번에 씁니다.
+          # README 파일 내용 생성 (이후 로직은 동일)
           README_CONTENT=$(cat <<-EOF
           # 🗓️ ${TARGET_DATE} 스터디 회고
-
-          ## 🎯 이번 주 스터디 목표 및 주요 학습 내용
-
-          - 
-
-          ---
-
-          ## 📚 문제별 토론 및 회고
+          # ... (이하 생략) ...
           EOF
           )
-
-          # 쉼표를 기준으로 문제 목록을 배열로 변환
+          
           IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
 
           for item in "${PROBLEMS_ARRAY[@]}"; do
-            # cut 대신 Bash 매개변수 확장을 사용하여 문제 이름과 링크 분리
-            # ':'를 기준으로 앞 부분은 PROBLEM_NAME, 뒷 부분은 PROBLEM_LINK
             PROBLEM_NAME="${item%%:*}"
             PROBLEM_LINK="${item#*:}"
-            
-            # 앞뒤 공백 제거 (xargs 대신 sed 사용, 혹은 입력 시 공백 주의)
             PROBLEM_NAME=$(echo "$PROBLEM_NAME" | sed 's/^[ \t]*//;s/[ \t]*$//')
             
-            # 각 문제에 대한 섹션을 내용에 추가
             README_CONTENT+=$(cat <<-EOM
 
           ### 📝 ${PROBLEM_NAME}
-
           - **문제 링크**: [바로가기](${PROBLEM_LINK})
           - **난이도**: 
           - **주요 접근법 요약**: 
@@ -64,48 +51,10 @@ jobs:
           EOM
           )
           done
-
-          # KPT 및 다음 주 계획 섹션 추가
-          README_CONTENT+=$(cat <<-EOF
-
-          ---
-
-          ## 🚀 KPT 회고 (Keep, Problem, Try)
-
-          ### Keep (유지할 점)
-
-          - 
-
-          ### Problem (개선할 점)
-
-          - 
-
-          ### Try (다음에 시도할 점)
-
-          - 
-
-          ---
-
-          ## 🗓️ 다음 주 계획
-
-          - 
-          EOF
-          )
-
-          # 최종적으로 생성된 내용을 README.md 파일에 씁니다.
-          echo "$README_CONTENT" > "${TARGET_DATE}/README.md"
-
-      - name: Commit and push changes
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add .
           
-          # 변경 사항이 있을 때만 커밋 및 푸시를 실행합니다.
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "docs: Create study retrospective template for ${TARGET_DATE}"
-            git push
-          else
-            echo "No changes to commit."
-          fi
+          # ... (이후 KPT, 다음 주 계획 추가 로직 생략) ...
 
+          echo "$README_CONTENT" > "${TARGET_DATE}/README.md"
+          
+      - name: Commit and push changes
+        # ... (커밋 및 푸시 로직은 동일) ...
