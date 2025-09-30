@@ -7,8 +7,8 @@
 | 이름     | GitHub                               |
 | -------- | ------------------------------------ | 
 | **배재유** | [배재유](https://github.com/platypus3036)  |
-| **박정훈** | [박정훈](https://github.com/)    | 
-| **이하영** | [이하영](https://github.com/)     | 
+| **박정훈** | [박정훈](https://github.com/winter3671)    | 
+| **이하영** | [이하영](https://github.com/gkdud112837)     | 
 
 
 ---
