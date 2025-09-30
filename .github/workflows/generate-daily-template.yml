@@ -6,7 +6,7 @@ on:
       date:
         description: '폴더 이름으로 사용할 날짜 (yymmdd 형식)'
         required: true
-        default: "$(date +'%y%m%d')"
+        # default는 정적인 값만 사용 가능하므로 동적 생성 구문 제거
       problems:
         description: '문제와 링크 목록 (형식: 문제이름1:링크1,문제이름2:링크2)'
         required: true
@@ -16,17 +16,18 @@ jobs:
   generate-files:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Create Common Study Template with Links
+      - name: Create study template
         run: |
           TARGET_DATE=${{ github.event.inputs.date }}
           PROBLEM_LIST=${{ github.event.inputs.problems }}
-
+          
           mkdir -p "$TARGET_DATE"
-
-          cat <<-EOF > "${TARGET_DATE}/README.md"
+          
+          # 여러번 cat으로 파일을 쓰는 대신, 변수에 내용을 누적한 후 한번에 씁니다.
+          README_CONTENT=$(cat <<-EOF
           # 🗓️ ${TARGET_DATE} 스터디 회고
 
           ## 🎯 이번 주 스터디 목표 및 주요 학습 내용
@@ -37,32 +38,35 @@ jobs:
 
           ## 📚 문제별 토론 및 회고
           EOF
+          )
 
-          # 쉼표로 구분된 목록을 배열로 변환합니다.
+          # 쉼표를 기준으로 문제 목록을 배열로 변환
           IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
 
           for item in "${PROBLEMS_ARRAY[@]}"; do
-            # 앞뒤 공백 제거
-            trimmed_item=$(echo "$item" | xargs)
+            # cut 대신 Bash 매개변수 확장을 사용하여 문제 이름과 링크 분리
+            # ':'를 기준으로 앞 부분은 PROBLEM_NAME, 뒷 부분은 PROBLEM_LINK
+            PROBLEM_NAME="${item%%:*}"
+            PROBLEM_LINK="${item#*:}"
             
-            # ':'를 기준으로 문제 이름과 링크를 분리합니다.
-            # 링크에 ':'가 포함될 수 있으므로(예: https://...), 두 번째 필드부터 끝까지를 링크로 처리합니다.
-            PROBLEM_NAME=$(echo "$trimmed_item" | cut -d':' -f1)
-            PROBLEM_LINK=$(echo "$trimmed_item" | cut -d':' -f2-)
+            # 앞뒤 공백 제거 (xargs 대신 sed 사용, 혹은 입력 시 공백 주의)
+            PROBLEM_NAME=$(echo "$PROBLEM_NAME" | sed 's/^[ \t]*//;s/[ \t]*$//')
             
-            cat <<-EOM >> "${TARGET_DATE}/README.md"
+            # 각 문제에 대한 섹션을 내용에 추가
+            README_CONTENT+=$(cat <<-EOM
 
           ### 📝 ${PROBLEM_NAME}
 
           - **문제 링크**: [바로가기](${PROBLEM_LINK})
           - **난이도**: 
-          - **주요 접근법 요약**: (예: A는 DFS, B는 DP로 접근)
-          - **토론 내용 및 피드백**: (예: 시간 복잡도 개선 방안, 코드 가독성 논의)
+          - **주요 접근법 요약**: 
+          - **토론 내용 및 피드백**: 
           EOM
+          )
           done
 
           # KPT 및 다음 주 계획 섹션 추가
-          cat <<-EOF >> "${TARGET_DATE}/README.md"
+          README_CONTENT+=$(cat <<-EOF
 
           ---
 
@@ -86,11 +90,22 @@ jobs:
 
           - 
           EOF
+          )
 
-      - name: Commit and Push changes
+          # 최종적으로 생성된 내용을 README.md 파일에 씁니다.
+          echo "$README_CONTENT" > "${TARGET_DATE}/README.md"
+
+      - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          git commit -m "docs: ${{ github.event.inputs.date }} 스터디 회고 템플릿 생성" || exit 0
-          git push
+          
+          # 변경 사항이 있을 때만 커밋 및 푸시를 실행합니다.
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "docs: Create study retrospective template for ${TARGET_DATE}"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+
