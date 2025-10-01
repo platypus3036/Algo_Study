@@ -41,13 +41,16 @@ jobs:
           # 입력받은 문제 목록을 쉼표(,)를 기준으로 분리합니다.
           IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
 
-          # 각 문제에 대한 섹션을 반복하여 추가합니다.
+          # 각 문제에 대한 섹션을 반복하여 추가하고, 문제별 폴더를 생성합니다.
           for item in "${PROBLEMS_ARRAY[@]}"; do
             PROBLEM_NAME="${item%%:*}"
             PROBLEM_LINK="${item#*:}"
             
             # 문제 이름 앞뒤의 공백을 제거합니다.
             PROBLEM_NAME=$(echo "$PROBLEM_NAME" | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+            # 각 문제 이름으로 폴더를 생성합니다. (수정된 부분)
+            mkdir -p "${TARGET_DATE}/${PROBLEM_NAME}"
             
             README_CONTENT+=$(cat <<-EOM
 
