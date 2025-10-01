@@ -65,19 +65,19 @@ git checkout --track origin/[본인-ID]
 
 ```
 # === 작업 시작 전: 최신 코드로 업데이트 ===
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 
 # === 내 작업 공간에서 코딩 시작 ===
 git checkout [본인-ID]
-git merge main
+git merge master
 
 # === 코딩 완료 후: 작업 내용 기록 및 업로드 ===
 git add .
 git commit -m "주차/ 푼 문제 수 or 문제 이름 등 자유롭게"
 git push origin [본인-ID]
 ```
-> 작업이 끝나면 GitHub 사이트에서 `main` 브랜치로 Pull Request를 생성합니다.
+> 작업이 끝나면 GitHub 사이트에서 `master` 브랜치로 Pull Request를 생성합니다.
 
 ---
 
