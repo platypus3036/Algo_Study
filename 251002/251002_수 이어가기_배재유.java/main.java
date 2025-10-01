@@ -49,7 +49,7 @@ public class Main {
         
         int max_len = 0;
         
-        for(int i = first_num-1; i>0; i--) {
+        for(int i = first_num; i>0; i--) {
 //        	System.out.println(i);
         	list.clear();
         	list.add(first_num);
