@@ -49,8 +49,11 @@ jobs:
             # 문제 이름 앞뒤의 공백을 제거합니다.
             PROBLEM_NAME=$(echo "$PROBLEM_NAME" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-            # 각 문제 이름으로 폴더를 생성합니다. (수정된 부분)
+            # 각 문제 이름으로 폴더를 생성합니다.
             mkdir -p "${TARGET_DATE}/${PROBLEM_NAME}"
+            
+            # ✨ 수정된 부분: 빈 폴더를 Git이 추적하도록 .gitkeep 파일을 생성합니다.
+            touch "${TARGET_DATE}/${PROBLEM_NAME}/.gitkeep"
             
             README_CONTENT+=$(cat <<-EOM
 
@@ -96,7 +99,7 @@ jobs:
           
           # 변경된 파일이 있을 경우에만 커밋과 푸시를 진행합니다.
           if ! git diff-index --quiet HEAD; then
-            git commit -m "docs: Create study retrospective template for ${TARGET_DATE}"
+            git commit -m "docs: Create study retrospective template for ${{ github.event.inputs.date }}"
             git push
           else
             echo "No changes to commit."
