@@ -4,9 +4,15 @@ import java.io.*;
 
 class Main
 {
-	static int[] color;
-	static int[][] map;
-	public static void main(String args[]) throws Exception
+	
+	
+	static int[][] moves = {
+			{-1,0},
+			{1,0},
+			{0,1},
+			{0,-1}
+	};
+ 	public static void main(String args[]) throws Exception
 	{
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
@@ -14,79 +20,82 @@ class Main
 		/*
 		 * 
 		 * 1. 목표
-		 * 잘라진 하얀색 색종이 와 파란색 색종이의 개수
+		 * 도연이가 만날 수 있는 사람의 수
 		 * 
 		 * 2. 조건
-		 * 각 색종이를 N/2로 햇을 때 구성 칸이 동일 색이 될 때까지
+		 * 캠퍼스의 크기 NxM
+		 * 캠퍼스에서 이동 -> 상하좌우
+		 * 그냥 델타문제
 		 * 
-		 * DFS로 각 나눈 값이 같은 컬러로 되었는지 확인하며 개수 확인
-		 * N == 1 이면 그냥 그 컬러
+		 * 메모리제한도 크다 -> 600x600x 8byte
+		 * 360000 2880000 byte -> 약 3000 MB -> String은 불가
+		 * char로 하자
 		 * 
-		 * 3. 구현
-		 * DFS
-		 * 컬러는 실제 color[2] 해서 0 0개수  1 1개수
 		 * 
 		 * */
 		
-		color = new int[2];
-		
-		int N = Integer.parseInt(br.readLine());
-		map = new int[N][N];
-		
+		StringTokenizer st = new StringTokenizer(br.readLine());
+		int N = Integer.parseInt(st.nextToken());
+		int M = Integer.parseInt(st.nextToken());
+		char[][] map = new char[N][M];
 		for(int i = 0; i<N; i++) {
-			StringTokenizer st = new StringTokenizer(br.readLine());
-			for(int j = 0; j<N; j++) {
-				map[i][j] = Integer.parseInt(st.nextToken());
+			String line = br.readLine();
+			for(int j =0; j<M; j++) {
+				map[i][j] = line.charAt(j);
 			}
 		}
 		
-		dfs(0,0,N);
+		int sy = -1;
+		int sx = -1;
+		//1. 도연이 찾기
+		for(int i=  0; i<N; i++) {
+			for(int j=0; j<M; j++) {
+				if(map[i][j] == 'I') {
+					sy = i;
+					sx = j;
+					break;
+				}
+			}
+		}
+		
+		int cnt= 0;
+		
+		boolean[][] visited= new boolean[N][M];
+		
+		Deque<int[]> q=  new ArrayDeque<>();
+		q.add(new int[] {sy,sx});
+		visited[sy][sx] = true;
+		while(!q.isEmpty()) {
+			int[] cur = q.poll();
+			if(map[cur[0]][cur[1]] == 'P') {
+				cnt++;
+			}
+			
+			for(int i =0; i<4; i++) {
+				int ny = cur[0]+moves[i][0];
+				int nx = cur[1]+moves[i][1];
+				if(isValid(ny,nx,N,M) && !visited[ny][nx] && map[ny][nx] != 'X') {
+					q.add(new int[] {ny,nx});
+					visited[ny][nx] = true;
+				}
+			}
+		}
 		
 		
-		bw.write(color[0]+"\n");
-		bw.write(color[1]+"");
+		if(cnt==0) {
+			bw.write("TT");
+		} else {
+			bw.write(cnt+"");
+		}
+		
 		
 		bw.flush();
 		bw.close();
 			
 	}
-	
-	public static void dfs(int sy, int sx, int N) {
-		
-		int base_color = map[sy][sx];
-		//종료 조건
-		if(N == 1) {
-			color[base_color]++;
-			return;
-		}
-		
-		
-		
-		if(isSame(N,sy,sx)) {
-			color[base_color]++;
-			return;
-		}
-		
-		//0-idx
-		//4/2 = 2 01, 23 N/2-1 
-		dfs(sy, sx,N/2);
-		dfs(sy, sx+N/2,N/2);
-		dfs(sy+N/2,sx,N/2);
-		dfs(sy+N/2,sx+N/2,N/2);
-		
-		
-		
-	}
-	
-	public static boolean isSame(int N, int sy, int sx) {
-		for(int i = sy; i<sy+N; i++) {
-			for(int j= sx; j<sx+N; j++) {
-				if(map[i][j] != map[sy][sx]) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
+ 	
+ 	public static boolean isValid(int sy,int sx, int N, int M) {
+ 		return 0<=sy && sy < N && 0<= sx && sx <M;
+ 	}
 	
 }
