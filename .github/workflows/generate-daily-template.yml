@@ -25,7 +25,7 @@ jobs:
           
           mkdir -p "$TARGET_DATE"
           
-          # README 파일의 상단 부분을 변수에 저장합니다.
+          # 1. 메인 README.md 파일 내용 구성
           README_CONTENT=$(cat <<-EOF
           # 🗓️ ${TARGET_DATE} 스터디 회고
 
@@ -38,23 +38,26 @@ jobs:
           EOF
           )
 
-          # 입력받은 문제 목록을 쉼표(,)를 기준으로 분리합니다.
+          # ✨ 수정된 부분: temporary.md 파일 내용 초기화
+          TEMP_CONTENT=$(cat <<-EOF
+          # 📝 ${TARGET_DATE} 임시 메모
+
+          EOF
+          )
+
           IFS=',' read -ra PROBLEMS_ARRAY <<< "$PROBLEM_LIST"
 
-          # 각 문제에 대한 섹션을 반복하여 추가하고, 문제별 폴더를 생성합니다.
           for item in "${PROBLEMS_ARRAY[@]}"; do
             PROBLEM_NAME="${item%%:*}"
             PROBLEM_LINK="${item#*:}"
             
-            # 문제 이름 앞뒤의 공백을 제거합니다.
             PROBLEM_NAME=$(echo "$PROBLEM_NAME" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-            # 각 문제 이름으로 폴더를 생성합니다.
+            # 각 문제 이름으로 폴더 생성 및 .gitkeep 파일 추가
             mkdir -p "${TARGET_DATE}/${PROBLEM_NAME}"
-            
-            # ✨ 수정된 부분: 빈 폴더를 Git이 추적하도록 .gitkeep 파일을 생성합니다.
             touch "${TARGET_DATE}/${PROBLEM_NAME}/.gitkeep"
             
+            # 메인 README.md에 문제별 상세 섹션 추가
             README_CONTENT+=$(cat <<-EOM
 
           ### 📝 ${PROBLEM_NAME}
@@ -64,9 +67,17 @@ jobs:
           - **토론 내용 및 피드백**: 
           EOM
           )
+
+            # ✨ 수정된 부분: temporary.md에 문제 제목과 빈칸 추가
+            TEMP_CONTENT+=$(cat <<-EOM
+
+          ### ${PROBLEM_NAME}
+          - 
+          EOM
+          )
           done
 
-          # KPT 회고 및 다음 주 계획 섹션을 추가합니다.
+          # 메인 README.md에 하단 KPT 회고 섹션 추가
           README_CONTENT+=$(cat <<-EOF
 
           ---
@@ -88,8 +99,9 @@ jobs:
           EOF
           )
 
-          # 완성된 내용을 파일에 한 번에 씁니다.
+          # 완성된 내용을 각 파일에 쓰기
           echo "$README_CONTENT" > "${TARGET_DATE}/README.md"
+          echo "$TEMP_CONTENT" > "${TARGET_DATE}/temporary.md"
 
       - name: Commit and push changes
         run: |
@@ -97,7 +109,6 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
           
-          # 변경된 파일이 있을 경우에만 커밋과 푸시를 진행합니다.
           if ! git diff-index --quiet HEAD; then
             git commit -m "docs: Create study retrospective template for ${{ github.event.inputs.date }}"
             git push
