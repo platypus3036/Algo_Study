@@ -52,6 +52,7 @@ jobs:
             PROBLEM_LINK="${item#*:}"
             
             PROBLEM_NAME=$(echo "$PROBLEM_NAME" | sed 's/^[ \t]*//;s/[ \t]*$//')
+            PROBLEM_LINK=$(echo "$PROBLEM_LINK" | sed 's/^[ \t]*//;s/[ \t]*$//')
 
             # 각 문제 이름으로 폴더 생성 및 .gitkeep 파일 추가
             mkdir -p "${TARGET_DATE}/${PROBLEM_NAME}"
